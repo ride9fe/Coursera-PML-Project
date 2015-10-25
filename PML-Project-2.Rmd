@@ -1,0 +1,120 @@
+---
+title: "Prac Machine Learning Project"
+output: html_document
+---
+Project Statement: 
+
+Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+---
+Data 
+
+The training data for this project are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+---
+Goal
+
+The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+---
+==== Author's submission ========================
+In the Coursera video lectures, random forest was mentioned as one of the most accurage modeling predictors. With this, the project was based on random forest model using caret package (a very useful wrapper package that includes many modeling functions) to start off with. The high-level approach is: 
+1) the data was analysed and found to have lots of NAs and empty values
+2) these values were removed from the variables so that they will not be involved in the modeling. The training set was based on 70% training and cross validation. 
+3) examine the model to see which cariables are important using varImpPlot().
+4) the result was subsequently applied to the test set. 
+
+First Load in the required packages
+```{r}
+library(caret)
+library(randomForest)
+library(ggplot2)
+#set.seed(1234)
+```
+
+Read in the Training and Test Set.
+```{r}
+traindata <- read.csv("pml-training.csv", header = TRUE, na.strings = c("NA", ""))
+testdata <- read.csv("pml-testing.csv", header = TRUE, na.strings = c("NA", ""))
+```
+
+Examining the data set via summary() and head(), the first 7 columns are not useful in the predictions (they are not features to predict any outcomes). We can quickly remove them by choosing (subsetting) only from column 8 onwards. 
+```{r}
+traindata <- traindata[,8:160]
+testdata <- testdata[,8:160]
+```
+
+
+there are many missing values, remove missing value columns by checking only keeping columns if the sum of the column is not na (ie. colSums is.na is false(==0))
+```{r}
+training_fewer_cols <- traindata[, (colSums(is.na(traindata)) == 0)]
+testdata <- testdata[, (colSums(is.na(traindata)) == 0)]
+ncol(training_fewer_cols)
+```
+
+Use caret to partition data into 70% for training and 30% for validation.
+```{r}
+inTrain = createDataPartition(y = training_fewer_cols$classe, p = 0.7, list = FALSE)
+small_train = training_fewer_cols[inTrain, ]
+small_valid = training_fewer_cols[-inTrain, ]
+```
+
+# ```{r}
+# corMat <- cor(small_train[, -54])
+# corrplot(corMat, order = "FPC", method = "color", type = "lower", tl.cex = 0.8, tl.col = rgb(0, 0, 0))
+# ```
+
+WIth 53 columns remaining, we do pre-processing using PCA. 
+```{r}
+preProc <- preProcess(small_train[, -53], method = "pca", thresh = 0.99)
+trainPC <- predict(preProc, small_train[, -53])
+valid_testPC <- predict(preProc, small_valid[, -53])
+```
+
+Using caret with random forest to train the 70%.
+```{r, eval=FALSE}
+modelFit <- train(small_train$classe ~ ., method = "rf", data = trainPC, trControl = trainControl(method = "cv", number = 4), importance = TRUE)
+```
+
+Plot using varImpPlot to see the importance of the principal components to get the idea of which specific vaiable is higher in importance.  
+```{r}
+varImpPlot(modelFit$finalModel, sort = TRUE, type = 1, pch = 19, col = 1, cex = 1, main = "Importance of the Individual Principal Components")
+```
+
+Using the modelFit generated to test the test data, parse out the confusion matrix. 
+```{r}
+pred_valid_rf <- predict(modelFit, valid_testPC)
+confus <- confusionMatrix(small_valid$classe, pred_valid_rf)
+confus$table
+```
+
+The accuracy is shown: 0.98. it means out of 10 samples, probably 1 is predicted wrongly. Out of 20, probably 2 is predicted wrongly. 
+```{r}
+accur <- postResample(small_valid$classe, pred_valid_rf)
+model_accuracy <- accur[[1]]
+model_accuracy
+```
+
+we see the error is as follows: 
+```{r}
+error <- 1 - model_accuracy
+error
+```
+
+Final step is to run the trained data to the test data minus the last vairable ('problem_id'). The predict function is used. 
+```{r}
+testPC <- predict(preProc, testdata[, -53])
+pred_final <- predict(modelFit, testPC)
+pred_final
+```
+
+
+
+---
+References: 
+https://class.coursera.org/predmachlearn-033/forum/thread?thread_id=116
+I find these forum thread useful especially on Peter Vennel's posts. 
+
