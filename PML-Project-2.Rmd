@@ -4,9 +4,9 @@ output: html_document
 ---
 Project Statement: 
 
-Background
+Background 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
-Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
 ---
 Data 
 
@@ -15,12 +15,13 @@ https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
 
 The test data are available here: 
 https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
 ---
 Goal
-
 The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases. 
+
 ---
-==== Author's submission ========================
+
 In the Coursera video lectures, random forest was mentioned as one of the most accurage modeling predictors. With this, the project was based on random forest model using caret package (a very useful wrapper package that includes many modeling functions) to start off with. The high-level approach is: 
 1) the data was analysed and found to have lots of NAs and empty values
 2) these values were removed from the variables so that they will not be involved in the modeling. The training set was based on 70% training and cross validation. 
@@ -62,11 +63,6 @@ small_train = training_fewer_cols[inTrain, ]
 small_valid = training_fewer_cols[-inTrain, ]
 ```
 
-# ```{r}
-# corMat <- cor(small_train[, -54])
-# corrplot(corMat, order = "FPC", method = "color", type = "lower", tl.cex = 0.8, tl.col = rgb(0, 0, 0))
-# ```
-
 WIth 53 columns remaining, we do pre-processing using PCA. 
 ```{r}
 preProc <- preProcess(small_train[, -53], method = "pca", thresh = 0.99)
@@ -75,7 +71,7 @@ valid_testPC <- predict(preProc, small_valid[, -53])
 ```
 
 Using caret with random forest to train the 70%.
-```{r, eval=FALSE}
+```{r}
 modelFit <- train(small_train$classe ~ ., method = "rf", data = trainPC, trControl = trainControl(method = "cv", number = 4), importance = TRUE)
 ```
 
